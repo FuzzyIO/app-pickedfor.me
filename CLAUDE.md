@@ -1,4 +1,4 @@
-# PickedFor.me - AI Travel Assistant
+# AI Travel Assistant
 
 ## Project Overview
 AI-powered travel planning assistant that understands user intent through conversational interface to create personalized trip recommendations.
@@ -29,22 +29,45 @@ AI-powered travel planning assistant that understands user intent through conver
 - TripAdvisor API (tourist attractions)
 - OpenWeatherMap (seasonal data)
 - Local event APIs
+- Flight APIs (Amadeus, Skyscanner)
+- Ground transport (Rome2Rio for multi-modal routing)
 
 **Data Categories**:
 - Activity types
 - Lodging options
 - Food/dining
 - Transportation (rental, public, walking, taxi)
+- **Travel logistics**:
+  - Flight pricing and availability
+  - Ground transport options and costs
+  - Travel duration calculations
+  - Multi-modal journey planning
 
 ## Technical Architecture
 
 ### Backend Stack
 - **Framework**: Python FastAPI
 - **Database**: PostgreSQL with pgvector extension
+  - Relational data integrity (users → trips → destinations)
+  - ACID compliance for bookings/transactions
+  - Native vector search with pgvector
+  - Complex query support
+  - JSONB for flexible data when needed
 - **ORM**: SQLAlchemy
 - **Validation**: Pydantic
 - **Background tasks**: Celery
 - **Authentication**: Google OAuth + Magic email links
+- **LLM Framework**: PydanticAI
+  - Type-safe conversation state
+  - Native Gemini function calling
+  - Structured output validation
+  - Minimal overhead
+- **Observability**: Langfuse
+  - Free tier (50k observations/month)
+  - Prompt versioning and A/B testing
+  - Cost tracking and analytics
+  - User feedback integration
+  - Error tracking and debugging
 
 ### Frontend Stack
 - **Framework**: React with TypeScript
@@ -65,21 +88,34 @@ AI-powered travel planning assistant that understands user intent through conver
 - Location description embeddings
 - Activity matching vectors
 
-### AI/LLM Strategy
+### AI/LLM Strategy (Vertex AI)
 **Response time target**: <10 seconds per interaction
 
 **Model Selection**:
-- **Primary**: Claude 3 Haiku (fast responses <2s)
+- **Primary**: Gemini 2.0 Flash
+  - Ultra-fast responses (<2s)
   - Intent extraction
   - Follow-up questions
   - Simple clarifications
-- **Secondary**: Claude 3.5 Sonnet
-  - Detailed itinerary generation
-  - Multi-destination comparisons
+  
+- **Secondary**: Gemini 2.5 Flash
+  - Balance of speed and capability
   - Complex preference matching
-- **Embeddings**: text-embedding-3-small
-  - User preference vectorization
-  - Location matching
+  - Multi-destination comparisons
+  
+- **Advanced**: Gemini 2.5 Pro
+  - Detailed itinerary generation
+  - Complex constraint optimization
+  - Final trip planning with all considerations
+
+**Function Calling**:
+- Native support in all Gemini 2.x models
+- Parallel function execution
+- Direct API integration for:
+  - Flight search
+  - Hotel availability
+  - Weather data
+  - Activity bookings
 
 ## Conversation Design
 
@@ -93,12 +129,17 @@ AI-powered travel planning assistant that understands user intent through conver
 - Include pros/cons and price ranges
 - Show preference match scores
 - Explain recommendations
+- **Include travel logistics**:
+  - How to get there (flight/train/drive options)
+  - Total travel time
+  - Estimated costs for transport
 
 ### Phase 3: Deep Planning
 - Day-by-day suggestions
 - Alternative activities for different party members
 - Booking links and logistics
 - Save/share functionality
+- Transportation between activities
 
 ## User Experience Features
 - Favorite/tag responses for future reference
@@ -107,21 +148,29 @@ AI-powered travel planning assistant that understands user intent through conver
   - "I'm visiting Chicago in mid July, what are cool things to do with 2 people"
 - Not everyone has to do everything together
 - Consider mobility and accessibility needs
+- Global destination support with travel logistics
+- **Component Selection System**:
+  - Mark components as: chosen, considering, backup, or vetoed
+  - Swap out individual activities with smart alternatives
+  - Automatic backup activation for weather/closures
+  - Learn from vetoed options to improve recommendations
+  - Track all decisions for pattern learning
 
 ## Implementation Priorities
-1. Core conversation engine
+1. Core conversation engine with Gemini integration
 2. User authentication system
 3. Basic location data integration
 4. Memory/context storage
 5. UI prototype
-6. Advanced features (multi-destination, group planning)
+6. Travel logistics APIs integration
+7. Advanced features (multi-destination, group planning)
 
 ## Performance Optimization
 - Pre-cache popular destinations
 - Use streaming responses
 - Background processing for complex queries
 - Progressive enhancement
-- Smaller LLMs for simple tasks
+- Model selection based on query complexity
 
 ## Security & Privacy
 - Secure user data storage
