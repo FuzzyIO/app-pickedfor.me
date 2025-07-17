@@ -1,4 +1,4 @@
-# PickedFor.me - AI Travel Assistant
+# AI Travel Assistant
 
 ## Project Overview
 AI-powered travel planning assistant that understands user intent through conversational interface to create personalized trip recommendations.
@@ -62,6 +62,12 @@ AI-powered travel planning assistant that understands user intent through conver
   - Native Gemini function calling
   - Structured output validation
   - Minimal overhead
+- **Observability**: Langfuse
+  - Free tier (50k observations/month)
+  - Prompt versioning and A/B testing
+  - Cost tracking and analytics
+  - User feedback integration
+  - Error tracking and debugging
 
 ### Frontend Stack
 - **Framework**: React with TypeScript
@@ -143,6 +149,12 @@ AI-powered travel planning assistant that understands user intent through conver
 - Not everyone has to do everything together
 - Consider mobility and accessibility needs
 - Global destination support with travel logistics
+- **Component Selection System**:
+  - Mark components as: chosen, considering, backup, or vetoed
+  - Swap out individual activities with smart alternatives
+  - Automatic backup activation for weather/closures
+  - Learn from vetoed options to improve recommendations
+  - Track all decisions for pattern learning
 
 ## Implementation Priorities
 1. Core conversation engine with Gemini integration

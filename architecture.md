@@ -90,10 +90,13 @@ erDiagram
     Trip ||--o{ TripDay : contains
     Trip ||--o{ TripMember : includes
     Trip }o--|| Destination : visits
+    Trip ||--o{ ComponentDecision : tracks
     Conversation ||--o{ Message : contains
     Message ||--o{ MessageContext : tracks
     Destination ||--o{ Activity : offers
     Destination ||--o{ Accommodation : has
+    ComponentDecision ||--o{ ComponentAlternative : maps
+    User ||--o{ DecisionPattern : learns
     
     User {
         uuid id PK
@@ -150,6 +153,35 @@ erDiagram
         point coordinates
         jsonb metadata
         vector description_embedding
+    }
+    
+    ComponentDecision {
+        uuid id PK
+        uuid trip_id FK
+        uuid user_id FK
+        string component_type
+        uuid component_id
+        string decision
+        text reason
+        timestamp decided_at
+    }
+    
+    ComponentAlternative {
+        uuid id PK
+        uuid trip_id FK
+        uuid primary_component_id
+        uuid backup_component_id
+        integer priority
+        string activation_reason
+    }
+    
+    DecisionPattern {
+        uuid id PK
+        uuid user_id FK
+        string pattern_type
+        jsonb pattern_data
+        float confidence
+        timestamp learned_at
     }
 ```
 
