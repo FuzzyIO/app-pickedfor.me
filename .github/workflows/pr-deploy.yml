@@ -1,0 +1,194 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: us-central1
+  BACKEND_SERVICE_NAME: pfm-backend-pr-${{ github.event.pull_request.number }}
+  FRONTEND_SERVICE_NAME: pfm-frontend-pr-${{ github.event.pull_request.number }}
+  ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/pfm
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend Preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.ARTIFACT_REGISTRY }}/backend:pr-${{ github.event.pull_request.number }}
+            ${{ env.ARTIFACT_REGISTRY }}/backend:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/backend:buildcache,mode=max
+
+      - name: Deploy to Cloud Run
+        id: deploy-backend
+        run: |
+          gcloud run deploy ${{ env.BACKEND_SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/backend:pr-${{ github.event.pull_request.number }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "ENVIRONMENT=development" \
+            --set-env-vars "DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD_DEV }}@/pickedfor_dev?host=/cloudsql/pickedforme:us-central1:pickedfor-me-dev" \
+            --set-env-vars "JWT_SECRET=${{ secrets.JWT_SECRET_DEV }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "FRONTEND_URL=https://${{ env.FRONTEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app" \
+            --add-cloudsql-instances pickedforme:us-central1:pickedfor-me-dev \
+            --min-instances 0 \
+            --max-instances 1 \
+            --timeout 300 \
+            --cpu 1 \
+            --memory 512Mi \
+            --cpu-boost
+
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          BACKEND_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+
+    outputs:
+      backend_url: ${{ steps.backend-url.outputs.url }}
+
+  deploy-frontend:
+    name: Deploy Frontend Preview
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Build and push frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.ARTIFACT_REGISTRY }}/frontend:pr-${{ github.event.pull_request.number }}
+            ${{ env.ARTIFACT_REGISTRY }}/frontend:pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ needs.deploy-backend.outputs.backend_url }}/api/v1
+          cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/frontend:buildcache
+          cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/frontend:buildcache,mode=max
+
+      - name: Deploy to Cloud Run
+        id: deploy-frontend
+        run: |
+          gcloud run deploy ${{ env.FRONTEND_SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/frontend:pr-${{ github.event.pull_request.number }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "NEXT_PUBLIC_API_URL=${{ needs.deploy-backend.outputs.backend_url }}/api/v1" \
+            --min-instances 0 \
+            --max-instances 1 \
+            --timeout 300 \
+            --cpu 1 \
+            --memory 512Mi \
+            --cpu-boost
+
+      - name: Get Frontend URL
+        id: frontend-url
+        run: |
+          FRONTEND_URL=$(gcloud run services describe ${{ env.FRONTEND_SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with URLs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const backend_url = '${{ needs.deploy-backend.outputs.backend_url }}';
+            const frontend_url = '${{ steps.frontend-url.outputs.url }}';
+            
+            const comment = `## 🚀 Preview Deployment Ready!
+            
+            Your PR preview has been deployed:
+            
+            🌐 **Frontend**: ${frontend_url}
+            🔧 **Backend API**: ${backend_url}
+            
+            ### Quick Links:
+            - [Open App](${frontend_url})
+            - [API Docs](${backend_url}/docs)
+            - [API Health Check](${backend_url}/health)
+            
+            ---
+            *This preview will be automatically cleaned up when the PR is closed.*`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Preview Deployment Ready')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
