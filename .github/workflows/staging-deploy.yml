@@ -55,7 +55,7 @@ jobs:
           gcloud run jobs create migrate-staging-${{ github.run_number }} \
             --image ${{ env.ARTIFACT_REGISTRY }}/backend:staging \
             --region ${{ env.REGION }} \
-            --set-env-vars "DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD_STAGING }}@/pickedfor_staging?host=/cloudsql/pickedforme:us-central1:pickedfor-me-staging" \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_STAGING }}@/pickedfor_staging?host=/cloudsql/pickedforme:us-central1:pickedfor-me-staging" \
             --set-cloudsql-instances pickedforme:us-central1:pickedfor-me-staging \
             --command "alembic" \
             --args "upgrade,head" \
@@ -82,7 +82,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "ENVIRONMENT=staging" \
-            --set-env-vars "DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD_STAGING }}@/pickedfor_staging?host=/cloudsql/pickedforme:us-central1:pickedfor-me-staging" \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_STAGING }}@/pickedfor_staging?host=/cloudsql/pickedforme:us-central1:pickedfor-me-staging" \
             --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_STAGING }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
             --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
