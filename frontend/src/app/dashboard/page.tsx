@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
@@ -60,9 +61,12 @@ export default function DashboardPage() {
             <p className="text-gray-600 mb-4">
               Tell me about your next adventure and I'll help you plan the perfect trip.
             </p>
-            <button className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition">
+            <Link 
+              href="/chat" 
+              className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition"
+            >
               Start New Trip
-            </button>
+            </Link>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">

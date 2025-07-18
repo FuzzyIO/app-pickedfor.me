@@ -5,6 +5,7 @@ from uuid import uuid4
 from sqlalchemy import Column, String, DateTime, Boolean, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
@@ -29,6 +30,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
+    
+    # Relationships
+    conversations = relationship("Conversation", back_populates="user")
+    trips = relationship("Trip", back_populates="user")
     
     def __repr__(self):
         return f"<User {self.email}>"

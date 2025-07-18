@@ -34,17 +34,22 @@ pickedfor.me/
 - Google OAuth authentication system
 - User management with PostgreSQL (Cloud SQL)
 - Protected routes and session management
-- Basic dashboard UI
+- Chat interface with real-time messaging
+- Conversation state management
+- Database models for trips and messages
+- Mock AI responses based on conversation state
 
 🚧 **In Progress**:
-- Conversational AI interface
-- Trip planning models
-- Gemini integration
+- Vertex AI Gemini integration
+- PydanticAI implementation
+- WebSocket support for real-time updates
 
 📋 **Planned**:
-- Travel API integrations
+- Travel API integrations (flights, hotels, activities)
 - Component selection UI
 - Real-time adaptation system
+- Memory and preference learning
+- pgvector integration for semantic search
 
 ## 🛠️ Tech Stack
 
@@ -93,6 +98,19 @@ npm run dev
 ```
 
 Visit http://localhost:3000 to see the app!
+
+## 📡 API Endpoints
+
+### Authentication
+- `GET /api/v1/auth/login/google` - Initiate Google OAuth
+- `GET /api/v1/auth/me` - Get current user info
+- `POST /api/v1/auth/logout` - Logout
+
+### Chat
+- `POST /api/v1/chat/chat` - Send message and get AI response
+- `GET /api/v1/chat/conversations` - List user conversations
+- `GET /api/v1/chat/conversations/{id}` - Get conversation with messages
+- `POST /api/v1/chat/conversations` - Create new conversation
 
 ## 🔑 Key Features
 
