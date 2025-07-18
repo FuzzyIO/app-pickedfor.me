@@ -83,9 +83,10 @@ jobs:
             --allow-unauthenticated \
             --set-env-vars "ENVIRONMENT=production" \
             --set-env-vars "DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD_PROD }}@/pickedfor_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
-            --set-env-vars "JWT_SECRET=${{ secrets.JWT_SECRET_PROD }}" \
+            --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_PROD }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
             --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "GOOGLE_REDIRECT_URI=https://${{ env.BACKEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app/api/v1/auth/google/callback" \
             --set-env-vars "FRONTEND_URL=https://${{ env.FRONTEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app" \
             --add-cloudsql-instances pickedforme:us-central1:pickedfor-me-prod \
             --min-instances 1 \

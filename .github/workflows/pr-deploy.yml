@@ -59,9 +59,10 @@ jobs:
             --allow-unauthenticated \
             --set-env-vars "ENVIRONMENT=development" \
             --set-env-vars "DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD_DEV }}@/pickedfor_dev?host=/cloudsql/pickedforme:us-central1:pickedfor-me-dev" \
-            --set-env-vars "JWT_SECRET=${{ secrets.JWT_SECRET_DEV }}" \
+            --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_DEV }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
             --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "GOOGLE_REDIRECT_URI=https://${{ env.BACKEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app/api/v1/auth/google/callback" \
             --set-env-vars "FRONTEND_URL=https://${{ env.FRONTEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app" \
             --add-cloudsql-instances pickedforme:us-central1:pickedfor-me-dev \
             --min-instances 0 \
