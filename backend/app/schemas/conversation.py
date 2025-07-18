@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
-from enum import Enum
-
 from pydantic import BaseModel, Field
 
 from app.models.conversation import ConversationState, MessageRole

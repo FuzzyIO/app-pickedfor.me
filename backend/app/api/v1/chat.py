@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,8 +13,6 @@ from app.schemas.conversation import (
     ConversationUpdate,
     Conversation as ConversationSchema,
     ConversationWithMessages,
-    MessageCreate,
-    Message as MessageSchema,
     ChatRequest,
     ChatResponse,
 )

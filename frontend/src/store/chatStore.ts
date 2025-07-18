@@ -20,12 +20,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   createConversation: (userId: string) => {
     const newConversation: Conversation = {
       id: crypto.randomUUID(),
-      userId,
+      user_id: userId,
       messages: [],
       state: ConversationState.INITIAL_INTENT,
       context: {},
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     set((state) => ({
@@ -44,7 +44,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set((state) => ({
       conversations: state.conversations.map((conv) =>
         conv.id === conversationId
-          ? { ...conv, messages: [...conv.messages, message], updatedAt: new Date().toISOString() }
+          ? { ...conv, messages: [...conv.messages, message], updated_at: new Date().toISOString() }
           : conv
       ),
       currentConversation:
@@ -52,7 +52,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           ? {
               ...state.currentConversation,
               messages: [...state.currentConversation.messages, message],
-              updatedAt: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             }
           : state.currentConversation,
     }));
@@ -62,12 +62,12 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set((store) => ({
       conversations: store.conversations.map((conv) =>
         conv.id === conversationId
-          ? { ...conv, state, updatedAt: new Date().toISOString() }
+          ? { ...conv, state, updated_at: new Date().toISOString() }
           : conv
       ),
       currentConversation:
         store.currentConversation?.id === conversationId
-          ? { ...store.currentConversation, state, updatedAt: new Date().toISOString() }
+          ? { ...store.currentConversation, state, updated_at: new Date().toISOString() }
           : store.currentConversation,
     }));
   },
@@ -76,7 +76,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set((store) => ({
       conversations: store.conversations.map((conv) =>
         conv.id === conversationId
-          ? { ...conv, context: { ...conv.context, ...context }, updatedAt: new Date().toISOString() }
+          ? { ...conv, context: { ...conv.context, ...context }, updated_at: new Date().toISOString() }
           : conv
       ),
       currentConversation:
@@ -84,7 +84,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           ? {
               ...store.currentConversation,
               context: { ...store.currentConversation.context, ...context },
-              updatedAt: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             }
           : store.currentConversation,
     }));
