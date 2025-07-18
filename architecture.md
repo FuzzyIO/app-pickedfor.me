@@ -353,37 +353,77 @@ graph TB
 ```mermaid
 graph TB
     subgraph "Google Cloud Platform"
-        subgraph "Frontend"
-            CDN[Cloud CDN]
-            LB[Load Balancer]
-            CR[Cloud Run - Next.js]
+        subgraph "Frontend Services"
+            CDN[Cloud CDN - Future]
+            CR_PR[Cloud Run - PR Preview]
+            CR_STG[Cloud Run - Staging]
+            CR_PROD[Cloud Run - Production]
         end
         
-        subgraph "Backend"
-            APILB[API Load Balancer]
-            APIRun[Cloud Run - FastAPI]
-            Workers[Cloud Run Jobs - Workers]
+        subgraph "Backend Services"
+            API_PR[Cloud Run API - PR Preview]
+            API_STG[Cloud Run API - Staging]
+            API_PROD[Cloud Run API - Production]
+            Jobs[Cloud Run Jobs - Migrations]
         end
         
-        subgraph "Data"
-            SQL[Cloud SQL - PostgreSQL]
-            Memstore[Memorystore - Redis]
+        subgraph "Data Layer"
+            SQL_DEV[Cloud SQL - Dev]
+            SQL_STG[Cloud SQL - Staging]
+            SQL_PROD[Cloud SQL - Production]
+            AR[Artifact Registry]
         end
         
-        subgraph "AI"
-            Vertex[Vertex AI]
+        subgraph "AI Services"
+            Vertex[Vertex AI - Gemini]
         end
     end
     
-    Users[Users] --> CDN
-    CDN --> LB
-    LB --> CR
-    CR --> APILB
-    APILB --> APIRun
-    APIRun --> SQL
-    APIRun --> Memstore
-    APIRun --> Vertex
-    APIRun --> Workers
+    subgraph "CI/CD"
+        GH[GitHub Actions]
+        GH --> AR
+        AR --> CR_PR
+        AR --> CR_STG
+        AR --> CR_PROD
+    end
+    
+    Users[Users] --> CR_PROD
+    CR_PROD --> API_PROD
+    API_PROD --> SQL_PROD
+    API_PROD --> Vertex
+    
+    CR_STG --> API_STG
+    API_STG --> SQL_STG
+    
+    CR_PR --> API_PR
+    API_PR --> SQL_DEV
+```
+
+## CI/CD Pipeline
+
+```mermaid
+graph LR
+    subgraph "Development"
+        PR[Pull Request] --> Build[Build Images]
+        Build --> Deploy_PR[Deploy Preview]
+        Deploy_PR --> Comment[Comment URLs]
+    end
+    
+    subgraph "Staging"
+        Push[Push to Main] --> Build_STG[Build Images]
+        Build_STG --> Migrate_STG[Run Migrations]
+        Migrate_STG --> Deploy_STG[Deploy Staging]
+    end
+    
+    subgraph "Production"
+        Release[Create Release] --> Build_PROD[Build Images]
+        Build_PROD --> Migrate_PROD[Run Migrations]
+        Migrate_PROD --> Deploy_PROD[Deploy Production]
+    end
+    
+    subgraph "Cleanup"
+        Close[Close PR] --> Delete[Delete Services]
+    end
 ```
 
 ## Implementation Status
@@ -419,6 +459,14 @@ graph TB
    - Message history
    - Mock AI responses based on state
    - Real-time UI updates
+
+6. **CI/CD Pipeline**
+   - GitHub Actions workflows
+   - PR preview deployments
+   - Staging and production pipelines
+   - Automated database migrations
+   - Docker containerization
+   - Multi-environment configuration
 
 ### 🚧 In Progress
 
