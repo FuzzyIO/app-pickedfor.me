@@ -20,7 +20,7 @@ class Message(MessageBase):
     conversation_id: UUID
     created_at: datetime
     llm_metadata: Dict[str, Any] = Field(default_factory=dict)
-    
+
     class Config:
         from_attributes = True
 
@@ -47,7 +47,7 @@ class Conversation(ConversationBase):
     created_at: datetime
     updated_at: datetime
     messages: List[Message] = []
-    
+
     class Config:
         from_attributes = True
 

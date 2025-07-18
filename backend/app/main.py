@@ -29,7 +29,7 @@ async def root():
         "message": f"Welcome to {settings.PROJECT_NAME} API",
         "docs": "/docs",
         "redoc": "/redoc",
-        "health": "/health"
+        "health": "/health",
     }
 
 

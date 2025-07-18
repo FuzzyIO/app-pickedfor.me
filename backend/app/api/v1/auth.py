@@ -22,17 +22,17 @@ async def google_login():
 @router.get("/callback/google")
 async def google_callback(
     code: str = Query(..., description="Authorization code from Google"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Handle Google OAuth callback."""
     try:
         auth_service = AuthService(db)
         user, access_token = await auth_service.authenticate_google_user(code)
-        
+
         # Redirect to frontend with token
         redirect_url = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}"
         return RedirectResponse(url=redirect_url)
-        
+
     except Exception as e:
         # Redirect to frontend with error
         redirect_url = f"{settings.FRONTEND_URL}/auth/error?message={str(e)}"
@@ -40,36 +40,26 @@ async def google_callback(
 
 
 @router.post("/callback/google", response_model=Token)
-async def google_callback_api(
-    code: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def google_callback_api(code: str, db: AsyncSession = Depends(get_db)):
     """Handle Google OAuth callback via API (for mobile apps)."""
     try:
         auth_service = AuthService(db)
         user, access_token = await auth_service.authenticate_google_user(code)
-        
+
         return Token(access_token=access_token)
-        
+
     except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Authentication failed: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Authentication failed: {str(e)}")
 
 
 @router.get("/me", response_model=User)
-async def get_current_user_info(
-    current_user: User = Depends(get_current_user)
-):
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information."""
     return current_user
 
 
 @router.post("/logout")
-async def logout(
-    current_user: User = Depends(get_current_user)
-):
+async def logout(current_user: User = Depends(get_current_user)):
     """Logout current user."""
     # For JWT, we just return success
     # The client should remove the token

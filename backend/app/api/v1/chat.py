@@ -45,19 +45,17 @@ async def get_conversation(
     result = await db.execute(
         select(Conversation)
         .where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == current_user.id
+            Conversation.id == conversation_id, Conversation.user_id == current_user.id
         )
         .options(selectinload(Conversation.messages))
     )
     conversation = result.scalar_one_or_none()
-    
+
     if not conversation:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conversation not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
         )
-    
+
     return conversation
 
 
@@ -68,10 +66,7 @@ async def create_conversation(
     db: AsyncSession = Depends(get_async_session),
 ):
     """Create a new conversation."""
-    conversation = Conversation(
-        user_id=current_user.id,
-        **conversation_data.dict()
-    )
+    conversation = Conversation(user_id=current_user.id, **conversation_data.dict())
     db.add(conversation)
     await db.commit()
     await db.refresh(conversation)
@@ -87,24 +82,21 @@ async def update_conversation(
 ):
     """Update a conversation."""
     result = await db.execute(
-        select(Conversation)
-        .where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == current_user.id
+        select(Conversation).where(
+            Conversation.id == conversation_id, Conversation.user_id == current_user.id
         )
     )
     conversation = result.scalar_one_or_none()
-    
+
     if not conversation:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conversation not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
         )
-    
+
     update_dict = update_data.dict(exclude_unset=True)
     for field, value in update_dict.items():
         setattr(conversation, field, value)
-    
+
     await db.commit()
     await db.refresh(conversation)
     return conversation
@@ -120,77 +112,70 @@ async def chat(
     # Get or create conversation
     if request.conversation_id:
         result = await db.execute(
-            select(Conversation)
-            .where(
+            select(Conversation).where(
                 Conversation.id == request.conversation_id,
-                Conversation.user_id == current_user.id
+                Conversation.user_id == current_user.id,
             )
         )
         conversation = result.scalar_one_or_none()
-        
+
         if not conversation:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conversation not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
             )
     else:
         # Create new conversation
         conversation = Conversation(
-            user_id=current_user.id,
-            state=ConversationState.INITIAL_INTENT,
-            context={}
+            user_id=current_user.id, state=ConversationState.INITIAL_INTENT, context={}
         )
         db.add(conversation)
         await db.flush()
-    
+
     # Add user message
     user_message = Message(
         conversation_id=conversation.id,
         role=MessageRole.USER,
         content=request.message,
-        llm_metadata={}
+        llm_metadata={},
     )
     db.add(user_message)
     await db.flush()
-    
+
     # TODO: Process message with AI and get response
     # For now, return a mock response
-    assistant_response = await _generate_mock_response(
-        conversation, 
-        request.message
-    )
-    
+    assistant_response = await _generate_mock_response(conversation, request.message)
+
     # Add assistant message
     assistant_message = Message(
         conversation_id=conversation.id,
         role=MessageRole.ASSISTANT,
         content=assistant_response["content"],
-        llm_metadata=assistant_response.get("metadata", {})
+        llm_metadata=assistant_response.get("metadata", {}),
     )
     db.add(assistant_message)
-    
+
     # Update conversation state if needed
     if assistant_response.get("new_state"):
         conversation.state = assistant_response["new_state"]
-    
+
     if assistant_response.get("context_update"):
         conversation.context.update(assistant_response["context_update"])
-    
+
     await db.commit()
     await db.refresh(assistant_message)
     await db.refresh(conversation)
-    
+
     return ChatResponse(
         conversation_id=conversation.id,
         message=assistant_message,
         state=conversation.state,
-        context=conversation.context
+        context=conversation.context,
     )
 
 
 async def _generate_mock_response(conversation: Conversation, user_message: str):
     """Generate a mock AI response based on conversation state."""
-    
+
     if conversation.state == ConversationState.INITIAL_INTENT:
         return {
             "content": (
@@ -202,9 +187,9 @@ async def _generate_mock_response(conversation: Conversation, user_message: str)
             ),
             "new_state": ConversationState.GATHERING_CONTEXT,
             "context_update": {"started": True},
-            "metadata": {"model": "mock", "tokens": 0}
+            "metadata": {"model": "mock", "tokens": 0},
         }
-    
+
     elif conversation.state == ConversationState.GATHERING_CONTEXT:
         return {
             "content": (
@@ -216,9 +201,9 @@ async def _generate_mock_response(conversation: Conversation, user_message: str)
             ),
             "new_state": ConversationState.REFINING_PREFERENCES,
             "context_update": {"gathering_preferences": True},
-            "metadata": {"model": "mock", "tokens": 0}
+            "metadata": {"model": "mock", "tokens": 0},
         }
-    
+
     elif conversation.state == ConversationState.REFINING_PREFERENCES:
         return {
             "content": (
@@ -233,16 +218,16 @@ async def _generate_mock_response(conversation: Conversation, user_message: str)
             ),
             "new_state": ConversationState.PRESENTING_OPTIONS,
             "context_update": {"ready_for_options": True},
-            "metadata": {"model": "mock", "tokens": 0}
+            "metadata": {"model": "mock", "tokens": 0},
         }
-    
+
     else:
         return {
             "content": (
                 "I understand! Let me help you with that. "
                 "Could you provide more details about what you're looking for?"
             ),
-            "metadata": {"model": "mock", "tokens": 0}
+            "metadata": {"model": "mock", "tokens": 0},
         }
 
 
@@ -254,21 +239,18 @@ async def delete_conversation(
 ):
     """Delete a conversation."""
     result = await db.execute(
-        select(Conversation)
-        .where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == current_user.id
+        select(Conversation).where(
+            Conversation.id == conversation_id, Conversation.user_id == current_user.id
         )
     )
     conversation = result.scalar_one_or_none()
-    
+
     if not conversation:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conversation not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found"
         )
-    
+
     await db.delete(conversation)
     await db.commit()
-    
+
     return {"message": "Conversation deleted successfully"}
