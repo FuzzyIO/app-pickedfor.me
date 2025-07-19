@@ -56,6 +56,12 @@ jobs:
             --image ${{ env.ARTIFACT_REGISTRY }}/backend:prod \
             --region ${{ env.REGION }} \
             --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedforme_user:${{ secrets.DB_PASSWORD_PROD }}@/pickedforme_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
+            --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_PROD }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "GOOGLE_REDIRECT_URI=http://localhost" \
+            --set-env-vars "FRONTEND_URL=http://localhost" \
+            --set-env-vars "ENVIRONMENT=production" \
             --set-cloudsql-instances pickedforme:us-central1:pickedfor-me-prod \
             --command "alembic" \
             --args "upgrade,head" \
