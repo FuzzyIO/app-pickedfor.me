@@ -49,6 +49,30 @@ jobs:
           cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/backend:buildcache
           cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/backend:buildcache,mode=max
 
+      - name: Run database migrations
+        run: |
+          # Create a one-off job to run migrations
+          gcloud run jobs create migrate-pr-${{ github.event.pull_request.number }}-${{ github.run_number }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/backend:pr-${{ github.event.pull_request.number }} \
+            --region ${{ env.REGION }} \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedforme_user:${{ secrets.DB_PASSWORD_DEV }}@/pickedforme_dev?host=/cloudsql/pickedforme:us-central1:pickedfor-me-dev" \
+            --set-cloudsql-instances pickedforme:us-central1:pickedfor-me-dev \
+            --command "alembic" \
+            --args "upgrade,head" \
+            --max-retries 1 \
+            --parallelism 1 \
+            --task-timeout 300 || true
+          
+          # Execute the job
+          gcloud run jobs execute migrate-pr-${{ github.event.pull_request.number }}-${{ github.run_number }} \
+            --region ${{ env.REGION }} \
+            --wait
+          
+          # Clean up the job
+          gcloud run jobs delete migrate-pr-${{ github.event.pull_request.number }}-${{ github.run_number }} \
+            --region ${{ env.REGION }} \
+            --quiet
+
       - name: Deploy to Cloud Run
         id: deploy-backend
         run: |
