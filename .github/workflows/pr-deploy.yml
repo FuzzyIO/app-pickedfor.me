@@ -62,8 +62,8 @@ jobs:
             --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_DEV }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
             --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            --set-env-vars "GOOGLE_REDIRECT_URI=https://${{ env.BACKEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app/api/v1/auth/google/callback" \
-            --set-env-vars "FRONTEND_URL=https://${{ env.FRONTEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app" \
+            --set-env-vars "GOOGLE_REDIRECT_URI=PLACEHOLDER" \
+            --set-env-vars "FRONTEND_URL=PLACEHOLDER" \
             --add-cloudsql-instances pickedforme:us-central1:pickedfor-me-dev \
             --min-instances 0 \
             --max-instances 1 \
@@ -79,6 +79,12 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+
+      - name: Update Backend Environment Variables
+        run: |
+          gcloud run services update ${{ env.BACKEND_SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --update-env-vars "GOOGLE_REDIRECT_URI=${{ steps.backend-url.outputs.url }}/api/v1/auth/google/callback"
 
     outputs:
       backend_url: ${{ steps.backend-url.outputs.url }}
@@ -146,6 +152,12 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
           echo "url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+
+      - name: Update Backend with Frontend URL
+        run: |
+          gcloud run services update ${{ env.BACKEND_SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --update-env-vars "FRONTEND_URL=${{ steps.frontend-url.outputs.url }}"
 
       - name: Comment PR with URLs
         uses: actions/github-script@v7
