@@ -1,0 +1,187 @@
+name: Production Deployment
+
+on:
+  release:
+    types: [published]
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: us-central1
+  BACKEND_SERVICE_NAME: pfm-backend-prod
+  FRONTEND_SERVICE_NAME: pfm-frontend-prod
+  ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/pfm
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.ARTIFACT_REGISTRY }}/backend:prod
+            ${{ env.ARTIFACT_REGISTRY }}/backend:${{ github.event.release.tag_name }}
+            ${{ env.ARTIFACT_REGISTRY }}/backend:prod-${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/backend:buildcache
+          cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/backend:buildcache,mode=max
+
+      - name: Run database migrations
+        run: |
+          # Create a one-off job to run migrations
+          gcloud run jobs create migrate-prod-${{ github.run_number }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/backend:prod \
+            --region ${{ env.REGION }} \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedforme_user:${{ secrets.DB_PASSWORD_PROD }}@/pickedforme_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
+            --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_PROD }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "GOOGLE_REDIRECT_URI=http://localhost" \
+            --set-env-vars "FRONTEND_URL=http://localhost" \
+            --set-env-vars "ENVIRONMENT=production" \
+            --set-cloudsql-instances pickedforme:us-central1:pickedfor-me-prod \
+            --command "alembic" \
+            --args "upgrade,head" \
+            --max-retries 1 \
+            --parallelism 1 \
+            --task-timeout 300 || true
+          
+          # Execute the job
+          gcloud run jobs execute migrate-prod-${{ github.run_number }} \
+            --region ${{ env.REGION }} \
+            --wait
+          
+          # Clean up the job
+          gcloud run jobs delete migrate-prod-${{ github.run_number }} \
+            --region ${{ env.REGION }} \
+            --quiet
+
+      - name: Deploy to Cloud Run
+        id: deploy-backend
+        run: |
+          gcloud run deploy ${{ env.BACKEND_SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/backend:prod \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "ENVIRONMENT=production" \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedforme_user:${{ secrets.DB_PASSWORD_PROD }}@/pickedforme_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
+            --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_PROD }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "GOOGLE_REDIRECT_URI=https://${{ env.BACKEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app/api/v1/auth/callback/google" \
+            --set-env-vars "FRONTEND_URL=https://${{ env.FRONTEND_SERVICE_NAME }}-${{ secrets.GCP_PROJECT_ID }}.a.run.app" \
+            --add-cloudsql-instances pickedforme:us-central1:pickedfor-me-prod \
+            --min-instances 1 \
+            --max-instances 10 \
+            --timeout 300 \
+            --cpu 2 \
+            --memory 2Gi \
+            --cpu-boost
+
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          BACKEND_URL=$(gcloud run services describe ${{ env.BACKEND_SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+
+    outputs:
+      backend_url: ${{ steps.backend-url.outputs.url }}
+
+  deploy-frontend:
+    name: Deploy Frontend to Production
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.ARTIFACT_REGISTRY }}/frontend:prod
+            ${{ env.ARTIFACT_REGISTRY }}/frontend:${{ github.event.release.tag_name }}
+            ${{ env.ARTIFACT_REGISTRY }}/frontend:prod-${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ needs.deploy-backend.outputs.backend_url }}/api/v1
+          cache-from: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/frontend:buildcache
+          cache-to: type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/frontend:buildcache,mode=max
+
+      - name: Deploy to Cloud Run
+        id: deploy-frontend
+        run: |
+          gcloud run deploy ${{ env.FRONTEND_SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/frontend:prod \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "NEXT_PUBLIC_API_URL=${{ needs.deploy-backend.outputs.backend_url }}/api/v1" \
+            --min-instances 1 \
+            --max-instances 10 \
+            --timeout 300 \
+            --cpu 2 \
+            --memory 2Gi \
+            --cpu-boost
+
+      - name: Create deployment summary
+        run: |
+          FRONTEND_URL=$(gcloud run services describe ${{ env.FRONTEND_SERVICE_NAME }} --region ${{ env.REGION }} --format 'value(status.url)')
+          
+          echo "## 🚀 Production Deployment Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend URL**: $FRONTEND_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend URL**: ${{ needs.deploy-backend.outputs.backend_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployment Time**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Verify the deployment at $FRONTEND_URL" >> $GITHUB_STEP_SUMMARY
+          echo "2. Check API health at ${{ needs.deploy-backend.outputs.backend_url }}/health" >> $GITHUB_STEP_SUMMARY
+          echo "3. Monitor logs in [Cloud Console](https://console.cloud.google.com/run?project=${{ vars.GCP_PROJECT_ID }})" >> $GITHUB_STEP_SUMMARY

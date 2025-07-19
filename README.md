@@ -38,6 +38,9 @@ pickedfor.me/
 - Conversation state management
 - Database models for trips and messages
 - Mock AI responses based on conversation state
+- Complete CI/CD pipeline with GitHub Actions
+- Multi-environment deployment (dev/staging/prod)
+- Automated PR preview deployments
 
 🚧 **In Progress**:
 - Vertex AI Gemini integration
@@ -168,6 +171,39 @@ The app includes comprehensive observability:
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## 🚀 Deployment
+
+### CI/CD Pipeline
+
+The project uses GitHub Actions for continuous deployment:
+
+- **PR Preview**: Every pull request gets its own preview environment
+- **Staging**: Automatically deployed when changes are pushed to `main`
+- **Production**: Deployed when a new release is tagged
+
+### Environments
+
+| Environment | Trigger | Database | URL Pattern |
+|------------|---------|----------|-------------|
+| PR Preview | Pull Request | `pickedfor-me-dev` | `pfm-{service}-pr-{number}-*.run.app` |
+| Staging | Push to main | `pickedfor-me-staging` | `pfm-{service}-staging-*.run.app` |
+| Production | Release tag | `pickedfor-me-prod` | `pfm-{service}-prod-*.run.app` |
+
+### Manual Deployment
+
+To deploy manually:
+
+```bash
+# Build and push Docker image
+docker build -t us-central1-docker.pkg.dev/pickedforme/pfm/backend:latest ./backend
+docker push us-central1-docker.pkg.dev/pickedforme/pfm/backend:latest
+
+# Deploy to Cloud Run
+gcloud run deploy pfm-backend-staging \
+  --image us-central1-docker.pkg.dev/pickedforme/pfm/backend:latest \
+  --region us-central1
+```
 
 ## 📄 License
 

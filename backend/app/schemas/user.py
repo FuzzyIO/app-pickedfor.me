@@ -30,7 +30,7 @@ class UserInDB(UserBase):
     created_at: datetime
     updated_at: datetime
     last_login: Optional[datetime] = None
-    
+
     class Config:
         from_attributes = True
 

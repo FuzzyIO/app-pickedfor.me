@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
-from enum import Enum
-
 from pydantic import BaseModel, Field
 
 from app.models.conversation import ConversationState, MessageRole
@@ -22,7 +20,7 @@ class Message(MessageBase):
     conversation_id: UUID
     created_at: datetime
     llm_metadata: Dict[str, Any] = Field(default_factory=dict)
-    
+
     class Config:
         from_attributes = True
 
@@ -49,7 +47,7 @@ class Conversation(ConversationBase):
     created_at: datetime
     updated_at: datetime
     messages: List[Message] = []
-    
+
     class Config:
         from_attributes = True
 
