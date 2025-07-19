@@ -84,7 +84,7 @@ jobs:
         run: |
           gcloud run services update ${{ env.BACKEND_SERVICE_NAME }} \
             --region ${{ env.REGION }} \
-            --update-env-vars "GOOGLE_REDIRECT_URI=${{ steps.backend-url.outputs.url }}/api/v1/auth/google/callback"
+            --update-env-vars "GOOGLE_REDIRECT_URI=${{ steps.backend-url.outputs.url }}/api/v1/auth/callback/google"
 
     outputs:
       backend_url: ${{ steps.backend-url.outputs.url }}
