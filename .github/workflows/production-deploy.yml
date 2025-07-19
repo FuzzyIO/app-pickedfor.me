@@ -55,7 +55,7 @@ jobs:
           gcloud run jobs create migrate-prod-${{ github.run_number }} \
             --image ${{ env.ARTIFACT_REGISTRY }}/backend:prod \
             --region ${{ env.REGION }} \
-            --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_PROD }}@/pickedfor_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedfor_user:${{ secrets.DB_PASSWORD_PROD }}@/pickedfor_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
             --set-cloudsql-instances pickedforme:us-central1:pickedfor-me-prod \
             --command "alembic" \
             --args "upgrade,head" \
@@ -82,7 +82,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "ENVIRONMENT=production" \
-            --set-env-vars "DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.DB_PASSWORD_PROD }}@/pickedfor_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedfor_user:${{ secrets.DB_PASSWORD_PROD }}@/pickedfor_prod?host=/cloudsql/pickedforme:us-central1:pickedfor-me-prod" \
             --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_PROD }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
             --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
