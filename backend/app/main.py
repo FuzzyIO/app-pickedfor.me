@@ -2,8 +2,12 @@ from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import logging
+
 from app.api.v1 import api_router
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -11,9 +15,26 @@ app = FastAPI(
 )
 
 # Set up CORS
+# For development, allow localhost origins
+allowed_origins = [settings.FRONTEND_URL]
+if settings.ENVIRONMENT == "development":
+    allowed_origins.extend(
+        [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+        ]
+    )
+
+# Log the allowed origins for debugging
+logger.info(f"CORS allowed origins: {allowed_origins}")
+logger.info(f"Frontend URL from settings: {settings.FRONTEND_URL}")
+logger.info(f"Environment: {settings.ENVIRONMENT}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
