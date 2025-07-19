@@ -58,7 +58,7 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "ENVIRONMENT=development" \
-            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedfor_user:${{ secrets.DB_PASSWORD_DEV }}@/pickedfor_dev?host=/cloudsql/pickedforme:us-central1:pickedfor-me-dev" \
+            --set-env-vars "DATABASE_URL=postgresql+asyncpg://pickedforme_user:${{ secrets.DB_PASSWORD_DEV }}@/pickedforme_dev?host=/cloudsql/pickedforme:us-central1:pickedfor-me-dev" \
             --set-env-vars "SECRET_KEY=${{ secrets.JWT_SECRET_DEV }}" \
             --set-env-vars "GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}" \
             --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
