@@ -39,23 +39,20 @@ async def health_check():
     """Health check endpoint."""
     from sqlalchemy import text
     from app.core.database import engine
-    
+
     try:
         # Test database connection
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
             await conn.commit()
-        
-        return {
-            "status": "healthy",
-            "database": "connected"
-        }
+
+        return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={
                 "status": "unhealthy",
                 "database": "disconnected",
-                "error": str(e)
-            }
+                "error": str(e),
+            },
         )
