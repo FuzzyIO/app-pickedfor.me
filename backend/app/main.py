@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -7,6 +7,8 @@ import logging
 from app.api.v1 import api_router
 from app.core.config import settings
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -40,7 +42,7 @@ if settings.ENVIRONMENT == "development":
     # This regex allows localhost, 127.0.0.1, PR preview URLs, and the configured frontend URL
     escaped_frontend_url = re.escape(settings.FRONTEND_URL)
     cors_regex = re.compile(
-        rf"^({escaped_frontend_url}|http://localhost:\d+|http://127\.0\.0\.1:\d+|https://pfm-frontend-pr-\d+-.*\.a\.run\.app)$"
+        rf"^({escaped_frontend_url}|http://localhost:\d+|http://127\.0\.0\.1:\d+|https://pfm-frontend-pr-\d+-[a-zA-Z0-9]+\.us-central1\.run\.app)$"
     )
 
     app.add_middleware(
@@ -61,6 +63,45 @@ else:
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+# Debug middleware to log CORS details
+@app.middleware("http")
+async def log_cors_details(request: Request, call_next):
+    """Log CORS-related details for debugging."""
+    origin = request.headers.get("origin")
+    if origin:
+        logger.info(f"Request Origin: {origin}")
+        logger.info(f"Request Method: {request.method}")
+        logger.info(f"Request URL: {request.url}")
+        logger.info(f"Environment: {settings.ENVIRONMENT}")
+        logger.info(f"Configured Frontend URL: {settings.FRONTEND_URL}")
+
+        if settings.ENVIRONMENT == "development":
+            # Test the regex
+            import re
+
+            escaped_frontend_url = re.escape(settings.FRONTEND_URL)
+            cors_regex = re.compile(
+                rf"^({escaped_frontend_url}|http://localhost:\d+|http://127\.0\.0\.1:\d+|https://pfm-frontend-pr-\d+-[a-zA-Z0-9]+\.us-central1\.run\.app)$"
+            )
+            if cors_regex.match(origin):
+                logger.info(f"Origin {origin} MATCHES CORS regex")
+            else:
+                logger.warning(f"Origin {origin} DOES NOT MATCH CORS regex")
+
+    response = await call_next(request)
+
+    # Log response CORS headers
+    if origin:
+        logger.info(
+            f"Response Access-Control-Allow-Origin: {response.headers.get('access-control-allow-origin', 'NOT SET')}"
+        )
+        logger.info(
+            f"Response Access-Control-Allow-Credentials: {response.headers.get('access-control-allow-credentials', 'NOT SET')}"
+        )
+
+    return response
 
 
 @app.get("/")
