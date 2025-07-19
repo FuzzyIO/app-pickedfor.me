@@ -32,13 +32,32 @@ logger.info(f"CORS allowed origins: {allowed_origins}")
 logger.info(f"Frontend URL from settings: {settings.FRONTEND_URL}")
 logger.info(f"Environment: {settings.ENVIRONMENT}")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Use regex pattern for PR preview URLs in development
+if settings.ENVIRONMENT == "development":
+    import re
+
+    # Allow PR preview URLs and localhost
+    # This regex allows localhost, 127.0.0.1, PR preview URLs, and the configured frontend URL
+    escaped_frontend_url = re.escape(settings.FRONTEND_URL)
+    cors_regex = re.compile(
+        rf"^({escaped_frontend_url}|http://localhost:\d+|http://127\.0\.0\.1:\d+|https://pfm-frontend-pr-\d+-.*\.a\.run\.app)$"
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=cors_regex,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
