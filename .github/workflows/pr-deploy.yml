@@ -155,9 +155,17 @@ jobs:
 
       - name: Update Backend with Frontend URL
         run: |
+          # Update the environment variable
           gcloud run services update ${{ env.BACKEND_SERVICE_NAME }} \
             --region ${{ env.REGION }} \
             --update-env-vars "FRONTEND_URL=${{ steps.frontend-url.outputs.url }}"
+          
+          # Wait for the update to complete
+          echo "Waiting for backend to update with new FRONTEND_URL..."
+          sleep 10
+          
+          # Verify the update
+          echo "Backend FRONTEND_URL is now set to: ${{ steps.frontend-url.outputs.url }}"
 
       - name: Comment PR with URLs
         uses: actions/github-script@v7
