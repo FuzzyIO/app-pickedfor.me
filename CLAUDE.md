@@ -205,3 +205,13 @@ AI-powered travel planning assistant that understands user intent through conver
 - API key management
 - Rate limiting
 - Data retention policies
+
+## Database Migration Strategy
+**Core Principle**: Zero-downtime deployments with backward-compatible API changes.
+
+**Key Rules**:
+- All database migrations must allow the API to function during deployment
+- New columns must be nullable or have defaults
+- Column removal requires multi-step process (stop usage → deploy → drop column)
+- Schema changes must not break the previous API version
+- Test migrations on staging before production
